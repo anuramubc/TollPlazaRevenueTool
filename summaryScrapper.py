@@ -67,17 +67,18 @@ class NhaiSummaryScrapper:
                 data_rows.append(cells)
 
             # Create a DataFrame from the extracted data
-            self.df = pd.DataFrame(data_rows)
+            df = pd.DataFrame(data_rows)
 
             # Optionally, you can set column names based on your data
             column_names = ["Sr No.", "State", "NH-No.", "Toll Plaza Name", "Toll Plaza Location", "Section / Stretch"]
-            self.df.columns = column_names
-            self.df.dropna(axis = 0, inplace=True)
+            df.columns = column_names
+            df.dropna(axis = 0, inplace=True)
+            self.df = df
         
 
             
 
-    def clearningDataFrame(self):
+    def cleaningDataFrame(self):
         if not self.df.empty:
             #Creating a new column that contains the toll plaza number
             self.df['Toll_Plaza_Num']= self.df['Toll Plaza Name'].str.extract(r'(\d+)').astype(int)
@@ -87,24 +88,17 @@ class NhaiSummaryScrapper:
             #Once we have successfully extracted the toll plaza name and toll plaza number, the original Toll Plaza Name column can be dropped
             self.df.drop(['Toll Plaza Name'],axis = 1, inplace = True)
 
-
-    #Extract the toll number for each toll plaza to use to obtain the revenue information from another url
-    def getTollNumber(self):
-        return self.df['Toll_Plaza_Num']
-
     def saveDataFrameToSQL(self):
         conn = sqlite3.connect(self.dbname+'.db')
         self.df.to_sql(self.dbname, conn, if_exists='replace', index = False)
 
     def runSummaryPipeline(self):
-        #Get the response from the NHAI url
-        self.response = self.fetchTableFromURL()
         #Now transform this response object to a dataframe for further processing
-        self.df = self.createDataFrame(self.response)
+        self.createDataFrame()
         if self.isDFCreated: 
             #Now clean the dataframe to add the toll number and toll name in proper order
-            self.df = self.clearningDataFrame(self.df)
+            self.cleaningDataFrame()
             #Now save this dataframe to a database called nhai_toll_summary
-            self.saveDataFrameToSQL(self.df,self.dbname)
+            self.saveDataFrameToSQL()
         else:
             print('An error occured while processing the web scrapping request!')

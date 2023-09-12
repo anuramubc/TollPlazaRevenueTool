@@ -8,6 +8,8 @@ import sqlite3
 #response = requests.get(url)
 #get the curl url command for the table that will be rendered during loading into the python format.
 
+
+
 cookies = {
     'ASP.NET_SessionId': '0oejx02ndkjatdzavvnezq0m',
 }

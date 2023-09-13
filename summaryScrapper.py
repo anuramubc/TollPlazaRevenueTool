@@ -91,6 +91,7 @@ class NhaiSummaryScrapper:
     def saveDataFrameToSQL(self):
         conn = sqlite3.connect(self.dbname+'.db')
         self.df.to_sql(self.dbname, conn, if_exists='replace', index = False)
+        conn.close()
 
     def runSummaryPipeline(self):
         #Now transform this response object to a dataframe for further processing

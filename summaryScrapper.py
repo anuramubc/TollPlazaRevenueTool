@@ -89,8 +89,9 @@ class NhaiSummaryScrapper:
             self.df.drop(['Toll Plaza Name'],axis = 1, inplace = True)
 
     def saveDataFrameToSQL(self):
-        conn = sqlite3.connect(self.dbname+'.db')
+        conn = sqlite3.connect('TollPlazaProject.db')
         self.df.to_sql(self.dbname, conn, if_exists='replace', index = False)
+        conn.commit()
         conn.close()
 
     def runSummaryPipeline(self):
@@ -101,5 +102,10 @@ class NhaiSummaryScrapper:
             self.cleaningDataFrame()
             #Now save this dataframe to a database called nhai_toll_summary
             self.saveDataFrameToSQL()
+            print('Successfully scrapped the NHAI summary portal')
         else:
             print('An error occured while processing the web scrapping request!')
+
+if __name__ == '__main__':
+    obj = NhaiSummaryScrapper('nhai_toll_summary')
+    obj.runSummaryPipeline()

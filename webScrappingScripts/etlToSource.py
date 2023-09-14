@@ -13,15 +13,17 @@ class etlToSource:
         obj.runSummaryPipeline()
         return obj.df['Toll_Plaza_Num']
 
-    def callIndividualPlazaInfo(self,tollNum,revenueDbname,feeDbname):
-        obj = individualPlazaInfo(revenueDbname,feeDbname, tollNum)
+    def callIndividualPlazaInfo(self,tollNum,revenueDbname,feeDbname, verbose):
+        
+        obj = individualPlazaInfo(revenueDbname,feeDbname, tollNum, verbose)
         obj.runPlazaInfoPipeline()
 
 
     def completeETL(self):
         obj = NhaiSummaryScrapper('nhai_toll_summary')
         tollNum = self.getTollNumber(obj)
-        partial_indiPlazaInfo = partial(self.callIndividualPlazaInfo, revenueDbname = 'r', feeDbname = 'f')
+        partial_indiPlazaInfo = partial(self.callIndividualPlazaInfo, revenueDbname = 'revenueTable', feeDbname = 'feeTable', verbose = False)
+        print('Started extracting fee and revenue details table')
         with concurrent.futures.ThreadPoolExecutor(20) as executor:
             executor.map(partial_indiPlazaInfo, tollNum)
         
@@ -30,9 +32,9 @@ class etlToSource:
 
         #check if both the table exists
         query = ''
-        cur.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='r' " )
+        cur.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='revenueTable' " )
         if cur.fetchone()[0] == 1 :
-            cur.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='f'" )
+            cur.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='feeTable'" )
             if cur.fetchone()[0] == 1:
                 print("Successfully scrapped and saved the data in the database")
             else:

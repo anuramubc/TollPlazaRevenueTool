@@ -72,6 +72,7 @@ class individualPlazaInfo:
         conn.close()
 
     def runPlazaInfoPipeline(self):
+        
         self.fetchTableFromURL()
         if self.extracted:
             self.cleanDataFrame()

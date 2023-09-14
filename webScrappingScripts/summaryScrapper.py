@@ -74,9 +74,6 @@ class NhaiSummaryScrapper:
             df.columns = column_names
             df.dropna(axis = 0, inplace=True)
             self.df = df
-        
-
-            
 
     def cleaningDataFrame(self):
         if not self.df.empty:
@@ -96,6 +93,7 @@ class NhaiSummaryScrapper:
 
     def runSummaryPipeline(self):
         #Now transform this response object to a dataframe for further processing
+        print('Started extraction of toll information including toll number')
         self.createDataFrame()
         if self.isDFCreated: 
             #Now clean the dataframe to add the toll number and toll name in proper order

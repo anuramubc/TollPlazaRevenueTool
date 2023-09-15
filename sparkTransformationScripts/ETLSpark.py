@@ -56,7 +56,7 @@ class sparkETLJob:
 
     def castTypeAndChangeColNames(self, old_name, new_name, new_dtype = None):
         self.mergedSumRevDF = self.mergedSumRevDF.withColumnRenamed(old_name, new_name)
-        if data_type != None:
+        if new_dtype != None:
             self.mergedSumRevDF = self.mergedSumRevDF.withColumn(new_name, col(new_name).cast(new_dtype))
             self.mergedSumRevDF = self.mergedSumRevDF.fillna(0, subset = [new_name])
         #self.mergedSumRevDF.printSchema()
@@ -77,8 +77,8 @@ class sparkETLJob:
                         ("Toll Plaza Location", 'Toll_Plaza_Location', None), ("Commercial Operation Data", "CommercialOperationDate", None), ("Date of fee notification", 'FeeNotificationDate', None),\
                         ("Fee Rule", "FeeRule",None ), ("Name of Concessionaire / OMT Contractor", "NameOfOperator", None) ]    
             for old_name, new_name, data_type in cols_changeToInt:
-                sparkObj.castTypeAndChangeColNames(old_name, new_name, data_type)
-            sparkObj.saveDFToSQL()
+                self.castTypeAndChangeColNames(old_name, new_name, data_type)
+            self.saveDFToSQL()
             print('Successfully merged, cleaned and saved data in the TollPlazaProject.db in the MergedSummaryRevenueTable')
         else:
             print('Error in merged, cleaned and saved data in the TollPlazaProject.db in the MergedSummaryRevenueTable')
@@ -88,8 +88,8 @@ class sparkETLJob:
 
     
 if __name__ == '__main__':
-    sparkObj = sparkETLJob('nhai_toll_summary','revenueTable','feeTable')
-    sparkObj.acquireAllDF()
+    sparkObj = sparkETLJob('nhai_toll_summary','revenueTable','feeTable', 'MergedSummaryRevenueTable')
+    """sparkObj.acquireAllDF()
     sparkObj.joinAndCleanDF()
     cols_changeToInt = [("Capital Cost of Project (in Rs. Cr.)", 'CapitalCost', 'int'), ("Cumulative Toll Revenue (in Rs. Cr.)", 'CumulativeTollRevenue', 'int'), \
                         ("Design Capacity (PCU)", 'DesignCapacity', 'int'), ("Traffic (PCU/day)", 'Traffic', 'int'), ("Target Traffic (PCU/day)", 'TargetTraffic', 'int'),\
@@ -99,5 +99,6 @@ if __name__ == '__main__':
         sparkObj.castTypeAndChangeColNames(old_name, new_name, data_type)
     sparkObj.saveDFToSQL('MergedSummaryRevenueTable')
     sparkObj.mergedSumRevDF.printSchema()
-    sparkObj.mergedSumRevDF.show()
+    sparkObj.mergedSumRevDF.show()"""
+    sparkObj.runSparkMergePipeline()
     #sparkObj.castTypeAndChangeColNames("`Cumulative Toll Revenue (in Rs. Cr.)`", 'int' ,'CumulativeTollRevenue')

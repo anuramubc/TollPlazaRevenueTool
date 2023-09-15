@@ -4,3 +4,4 @@ rev_toll_info
 scratch.py
 split
 __pycache__
+.DS_Store

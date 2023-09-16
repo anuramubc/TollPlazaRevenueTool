@@ -4,12 +4,14 @@ findspark.init()
 import pyspark
 
 from pyspark.sql import SparkSession
-from ETLSpark import sparkETLJob, col
+from ETLSpark import sparkETLJob
+from pyspark.sql.functions import when, col, regexp_replace
 
 class insightGen:
     
-    def __init__(self):
+    def __init__(self, destinationTable):
         self.ETLSparkObj = sparkETLJob('nhai_toll_summary','revenueTable','feeTable', 'MergedSummaryRevenueTable')
+        self.destinationTable = destinationTable
         
 
     def connectToDB(self):
@@ -30,7 +32,6 @@ class insightGen:
 
 
     def loadSQLToDF(self, table_name):
-        #jdbc_url: str = "jdbc:sqlite:" + self.db_path
         self.connectToDB()
         df = self.spark \
             .read \
@@ -41,24 +42,42 @@ class insightGen:
             .load()
         return df
     
+    def countOperationType(self, op_type):
+        df = self.summaryDF.filter(self.summaryDF.operation_type == op_type).groupBy('State').count().withColumnRenamed('count', 'TotNoOf'+op_type)
+        return df
+    
+
     def generateInsights(self):
         self.summaryDF = self.loadSQLToDF('MergedSummaryRevenueTable')
-        cols = ('NH-No.', 'Toll_Plaza_Location', 'Toll_Plaza_Num', 'Toll_Plaza_Name', 'FeeNotificationDate','NameOfOperator', 'contactPhone', 'contactName','TollPlazaNum', 'Toll_Plaza_Num')
-        self.insightDF = self.summaryDF.drop(*cols)
-        """self.summaryDF.groupBy("State").count().show()
-        self.insightDF = self.insightDF.withColumn("TotalCapitalCostPerState", self.summaryDF.groupBy("State").sum('CapitalCost'))
-        self.insightDF.show()"""
-        #self.insightsDF = self.summaryDF.groupBy("State").select(sum("CapitalCost")).show()
-        #self.summaryDF.filter(self.summaryDF.State == 'Punjab').select("CapitalCost").show(100)
-        #self.summaryDF.filter(self.summaryDF.CapitalCost == 1940422035).show()
-        #select(sum('CapitalCost').alias('CumulativeCapitalCostPerState')).groupBy('State').show()
+        countDF =self.summaryDF.groupBy('State').count().withColumnRenamed('count', 'NoOfTolls')
+        cols_to_rename = ['State', 'TotCapitalCost','TotRevenue', 'TotDesignCapacity', 'TotTraffic', 'TotTargetTraffic']
+        self.insightDF = self.summaryDF.groupBy('State').sum('CapitalCost', 'CumulativeTollRevenue', 'DesignCapacity','Traffic','TargetTraffic').toDF(*cols_to_rename)
+        self.insightDF = self.insightDF.join(countDF, ['State'], 'left')
+        self.insightDF = self.insightDF.sort('NoOfTolls')
+        self.summaryDF = self.summaryDF.withColumn('operation_type', regexp_replace(col('operation_type'), r'\d+', 'Unknown'))
+        self.summaryDF = self.summaryDF.withColumn('operation_type', regexp_replace(col('operation_type'), r'\s+', ''))
+        distinctOpType = self.summaryDF.select("operation_type").distinct().rdd.flatMap(lambda x: x).collect()
+        for optype in distinctOpType:
+            df = self.countOperationType(optype)
+            self.insightDF = self.insightDF.join(df, ['State'], 'left')
+            self.insightDF = self.insightDF.fillna(0, subset = ['TotNoOf'+optype])
     
+    def saveDFToSQL(self):
+        connection_properties = {"driver": "org.sqlite.JDBC"}
+        # Save the DataFrame to the SQLite database
+        try:
+            self.insightDF.write.jdbc(url=self.jdbc_url, table=self.destinationTable, mode="overwrite", properties=connection_properties)
+            print('Successfully saved the insights database in InsightsTable in TollPlazaProject.db')
+        except:
+            print('Error! Insights file was not generated successfully')
+   
+    def runInsightsPipeline(self):
+        self.generateInsights()
+        self.saveDFToSQL()
+        self.spark.stop()
 
 
 if __name__ == '__main__':
-    obj = insightGen()
-    obj.generateInsights()
-    obj.generateInsights()
-    obj.insightDF.show()
-
+    obj = insightGen('InsightsTable')
+    obj.runInsightsPipeline()
 
